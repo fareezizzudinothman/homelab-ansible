@@ -1,0 +1,17 @@
+# Generated inventory
+inventory.ini
+
+# Ansible
+*.retry
+
+# Sensitive files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.vault_pass
+
+# Python
+__pycache__/
+*.pyc
