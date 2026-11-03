@@ -1,0 +1,24 @@
+- name: Bootstrap Ansible Controller
+  hosts: ansible
+  become: true
+
+  tasks:
+    - name: Update APT package cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install Ansible Core
+      ansible.builtin.apt:
+        name: ansible-core
+        state: present
+
+    - name: Verify Ansible installation
+      ansible.builtin.command:
+        cmd: ansible --version
+      register: ansible_version
+      changed_when: false
+
+    - name: Display Ansible version
+      ansible.builtin.debug:
+        var: ansible_version.stdout_lines
