@@ -1,4 +1,4 @@
-- name: Bootstrap Ansible Controller
+- name: Bootstrap Ansible Controllerr
   hosts: ansible
   become: true
 
