@@ -2,6 +2,7 @@
 - name: Deploy Ansible Automation
   hosts: localhost
   connection: local
+  become: true
   gather_facts: false
 
   vars:
@@ -11,7 +12,16 @@
 
   tasks:
 
-    - name: Pull latest source code from GitHub
+    - name: Create deployment directory
+      ansible.builtin.file:
+        path: "{{ repo_path }}"
+        state: directory
+        owner: fareezio
+        group: fareezio
+        mode: "0755"
+
+    - name: Clone or update repository
+      become: false
       ansible.builtin.git:
         repo: "{{ repo_url }}"
         dest: "{{ repo_path }}"
@@ -19,6 +29,7 @@
         update: true
 
     - name: Execute main Ansible playbook
+      become: false
       ansible.builtin.command:
         argv:
           - ansible-playbook
