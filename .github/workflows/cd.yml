@@ -52,4 +52,44 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=yes \
             fareezio@100.94.21.73 \
-            "ansible-playbook -i localhost, -c local /path/to/playbook-deploy.yaml"
+            'bash -se' <<'REMOTE'
+
+          set -euo pipefail
+
+          REPO_URL="https://github.com/fareezizzudinothman/homelab-ansible.git"
+          REPO_PATH="/opt/homelab-ansible"
+
+          # Prepare repository directory
+          sudo install -d -o fareezio -g fareezio "$REPO_PATH"
+
+          # Clone repository if not exists
+          if [ ! -d "$REPO_PATH/.git" ]; then
+
+              if [ -n "$(find "$REPO_PATH" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+                  echo "ERROR: Repository directory is not empty."
+                  exit 1
+              fi
+
+              echo "Cloning Ansible repository..."
+              git clone "$REPO_URL" "$REPO_PATH"
+
+          else
+
+              echo "Pulling latest Ansible repository..."
+              git -C "$REPO_PATH" pull --ff-only origin main
+
+          fi
+
+          # Execute Ansible playbook
+          echo "Starting Ansible deployment..."
+
+          cd "$REPO_PATH"
+
+          ansible-playbook \
+            -i localhost, \
+            -c local \
+            playbooks/playbook-ansible.yaml
+
+          echo "Deployment completed successfully."
+
+          REMOTE
