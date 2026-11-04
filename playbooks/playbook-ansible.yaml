@@ -16,9 +16,9 @@
     - name: Verify Ansible installation
       ansible.builtin.command:
         cmd: ansible --version
-      register: ansible_version
+      register: ansible_check
       changed_when: false
 
     - name: Display Ansible version
       ansible.builtin.debug:
-        var: ansible_version.stdout
+        msg: "{{ ansible_check['stdout_lines'] }}"
