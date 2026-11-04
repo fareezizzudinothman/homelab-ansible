@@ -35,4 +35,6 @@ jobs:
         run: ansible --version
 
       - name: Validate Playbook Syntax
-        run: ansible-playbook playbooks/playbook-ansible.yaml --syntax-check
+        run: |
+          ansible-playbook playbooks/playbook-ansible.yaml --syntax-check
+          ansible-playbook playbooks/playbook-deploy.yaml --syntax-check
