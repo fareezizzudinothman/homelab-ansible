@@ -1,0 +1,36 @@
+---
+- name: Deploy Ansible Automation
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    repo_url: https://github.com/fareezizzudinothman/homelab-ansible.git
+    repo_path: /opt/homelab-ansible
+    main_playbook: playbooks/playbook-ansible.yaml
+
+  tasks:
+
+    - name: Pull latest source code from GitHub
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_path }}"
+        version: main
+        update: true
+
+    - name: Execute main Ansible playbook
+      ansible.builtin.command:
+        argv:
+          - ansible-playbook
+          - -i
+          - localhost,
+          - -c
+          - local
+          - "{{ main_playbook }}"
+        chdir: "{{ repo_path }}"
+      register: deployment_result
+      changed_when: true
+
+    - name: Display deployment result
+      ansible.builtin.debug:
+        var: deployment_result.stdout_lines
