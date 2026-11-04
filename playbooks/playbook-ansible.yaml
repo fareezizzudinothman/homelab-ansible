@@ -21,4 +21,4 @@
 
     - name: Display Ansible version
       ansible.builtin.debug:
-        var: ansible_version.stdout_lines
+        var: ansible_version.stdout
