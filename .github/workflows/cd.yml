@@ -40,18 +40,18 @@ jobs:
 
       - name: Verify SSH Connection
         run: |
-          ssh-keyscan -H 100.94.21.73 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 100.101.241.93 >> ~/.ssh/known_hosts
 
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=yes \
-            fareezio@100.94.21.73 \
+            fareezio@100.101.241.93 \
             "hostname"
 
       - name: Deploy Ansible Automation
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=yes \
-            fareezio@100.94.21.73 \
+            fareezio@100.101.241.93 \
             'bash -se' <<'REMOTE'
 
           set -euo pipefail
