@@ -114,7 +114,7 @@ jobs:
 
           ansible-playbook \
               -i inventory.ini \
-              playbooks/webserver-docker.yml \
+              playbooks/webserver-docker.yaml \
               --limit webserver \
               --become
 
