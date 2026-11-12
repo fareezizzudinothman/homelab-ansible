@@ -92,8 +92,8 @@ jobs:
 
           ansible-playbook --version
 
-          # Execute Ansible playbook
-          echo "Starting Ansible deployment..."
+          # Execute Ansible Controller playbook
+          echo "Starting Ansible Controller deployment..."
 
           cd "$REPO_PATH"
 
@@ -102,5 +102,23 @@ jobs:
               -c local \
               playbooks/playbook-ansible.yaml
 
-          echo "Deployment completed successfully."
+          echo "Ansible Controller deployment completed."
+
+          # Test Webserver connectivity
+          echo "Checking Webserver connectivity..."
+
+          ansible webserver -i inventory.ini -m ping
+
+          # Execute Webserver playbook
+          echo "Starting Webserver deployment..."
+
+          ansible-playbook \
+              -i inventory.ini \
+              playbooks/webserver-docker.yml \
+              --limit webserver \
+              --become
+
+          echo "Webserver deployment completed successfully."
+
+
           REMOTE
