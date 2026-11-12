@@ -80,16 +80,27 @@ jobs:
 
           fi
 
+          # Install Ansible Core if not installed
+          echo "Checking Ansible installation..."
+
+          if ! command -v ansible-playbook >/dev/null 2>&1; then
+              echo "Installing Ansible Core..."
+
+              sudo apt-get update
+              sudo apt-get install -y ansible-core
+          fi
+
+          ansible-playbook --version
+
           # Execute Ansible playbook
           echo "Starting Ansible deployment..."
 
           cd "$REPO_PATH"
 
           ansible-playbook \
-            -i localhost, \
-            -c local \
-            playbooks/playbook-ansible.yaml
+              -i localhost, \
+              -c local \
+              playbooks/playbook-ansible.yaml
 
           echo "Deployment completed successfully."
-
           REMOTE
