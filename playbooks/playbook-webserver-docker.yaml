@@ -78,3 +78,18 @@
     - name: Display Docker Compose version
       ansible.builtin.debug:
         msg: "{{ compose_version.stdout }}"
+
+    - name: Create Webstack directory
+      ansible.builtin.file:
+        path: /opt/webstack
+        state: directory
+        mode: '0755'
+
+    - name: Create Docker network
+      ansible.builtin.command:
+        cmd: docker network create homelab-network
+      register: network_result
+      changed_when: network_result.rc == 0
+      failed_when:
+        - network_result.rc != 0
+        - "'already exists' not in network_result.stderr"
