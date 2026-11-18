@@ -93,3 +93,19 @@
       failed_when:
         - network_result.rc != 0
         - "'already exists' not in network_result.stderr"
+    - name: Add fareezio to Docker group
+      ansible.builtin.user:
+        name: fareezio
+        groups: docker
+        append: true
+        state: present
+    
+    - name: Verify Docker group membership
+      ansible.builtin.command:
+        cmd: id fareezio
+      register: user_groups
+      changed_when: false
+
+    - name: Display user groups
+      ansible.builtin.debug:
+        msg: "{{ user_groups.stdout }}"
