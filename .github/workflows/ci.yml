@@ -34,7 +34,12 @@ jobs:
       - name: Check Ansible version
         run: ansible --version
 
+      - name: Install Ansible Galaxy Collections
+        run: |
+          ansible-galaxy collection install community.postgresql
+
       - name: Validate Playbook Syntax
         run: |
           ansible-playbook playbooks/playbook-ansible.yaml --syntax-check
           ansible-playbook playbooks/playbook-webserver-docker.yaml --syntax-check
+          ansible-playbook playbooks/playbook-postgres-galaxy.yaml  --syntax-check
