@@ -108,7 +108,7 @@
         login_unix_socket: /var/run/postgresql
         port: "{{ postgres_port }}"
         state: present
-      no_log: true
+      no_log: false
 
     # ----------------------------------------
     # 8. Create Database
