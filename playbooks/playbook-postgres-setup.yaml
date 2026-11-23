@@ -111,7 +111,7 @@
       no_log: false
 
     # ----------------------------------------
-    # 8. Create Database
+    # 8. Create postgres Database
     # ----------------------------------------
 
     - name: Create PostgreSQL database
