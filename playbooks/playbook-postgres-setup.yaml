@@ -1,0 +1,148 @@
+- name: Install and Configure PostgreSQL Server
+  hosts: postgres
+  become: true
+
+  vars:
+    postgres_version: "16"
+    postgres_port: 1234
+    postgres_database: pdb
+    postgres_user: postgres
+    postgres_password: postgres
+
+    # Update these IP addresses before deployment
+    postgres_lan_ip: "192.168.0.34"
+    postgres_tailscale_ip: "100.124.199.33"
+
+    # Webserver VM
+    webserver_ip: "192.168.0.35"
+
+    # Tailscale client network
+    tailscale_network: "100.64.0.0/10"
+
+    postgres_config_dir: "/etc/postgresql/{{ postgres_version }}/main"
+
+  tasks:
+
+    # ----------------------------------------
+    # 1. Update Ubuntu
+    # ----------------------------------------
+
+    - name: Update APT cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    # ----------------------------------------
+    # 2. Install PostgreSQL
+    # ----------------------------------------
+
+    - name: Install PostgreSQL packages
+      ansible.builtin.apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+          - postgresql-client
+          - python3-psycopg2
+        state: present
+
+    # ----------------------------------------
+    # 3. Configure PostgreSQL Port
+    # ----------------------------------------
+
+    - name: Configure PostgreSQL port
+      ansible.builtin.lineinfile:
+        path: "{{ postgres_config_dir }}/postgresql.conf"
+        regexp: "^#?port\\s*="
+        line: "port = {{ postgres_port }}"
+      notify: Restart PostgreSQL
+
+    # ----------------------------------------
+    # 4. Configure Listening Addresses
+    # ----------------------------------------
+
+    - name: Configure PostgreSQL listening addresses
+      ansible.builtin.lineinfile:
+        path: "{{ postgres_config_dir }}/postgresql.conf"
+        regexp: "^#?listen_addresses\\s*="
+        line: >-
+          listen_addresses = 'localhost,{{ postgres_lan_ip }},{{ postgres_tailscale_ip }}'
+      notify: Restart PostgreSQL
+
+    # ----------------------------------------
+    # 5. Configure Client Authentication
+    # ----------------------------------------
+
+    - name: Configure PostgreSQL client access
+      ansible.builtin.blockinfile:
+        path: "{{ postgres_config_dir }}/pg_hba.conf"
+        marker: "# {mark} ANSIBLE MANAGED ACCESS"
+        block: |
+          host    all    all    {{ webserver_ip }}/32    scram-sha-256
+          host    all    all    {{ tailscale_network }}    scram-sha-256
+      notify: Restart PostgreSQL
+
+    # ----------------------------------------
+    # 6. Start PostgreSQL
+    # ----------------------------------------
+
+    - name: Ensure PostgreSQL is enabled and running
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: true
+
+    # Apply configuration changes before database operations
+    - name: Apply PostgreSQL configuration
+      ansible.builtin.meta: flush_handlers
+
+    # ----------------------------------------
+    # 7. Set PostgreSQL Superuser Password
+    # ----------------------------------------
+
+    - name: Configure PostgreSQL superuser password
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: "{{ postgres_user }}"
+        password: "{{ postgres_password }}"
+        role_attr_flags: SUPERUSER
+        login_unix_socket: /var/run/postgresql
+        port: "{{ postgres_port }}"
+        state: present
+      no_log: true
+
+    # ----------------------------------------
+    # 8. Create Database
+    # ----------------------------------------
+
+    - name: Create PostgreSQL database
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: "{{ postgres_database }}"
+        owner: "{{ postgres_user }}"
+        login_unix_socket: /var/run/postgresql
+        port: "{{ postgres_port }}"
+        state: present
+
+    # ----------------------------------------
+    # 9. Verify PostgreSQL
+    # ----------------------------------------
+
+    - name: Check PostgreSQL readiness
+      ansible.builtin.command:
+        argv:
+          - pg_isready
+          - -p
+          - "{{ postgres_port | string }}"
+      register: postgres_status
+      changed_when: false
+
+    - name: Display PostgreSQL status
+      ansible.builtin.debug:
+        msg: "{{ postgres_status.stdout }}"
+
+  handlers:
+
+    - name: Restart PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: restarted

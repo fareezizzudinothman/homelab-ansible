@@ -120,5 +120,26 @@ jobs:
 
           echo "Webserver deployment completed successfully."
 
+          # Install Ansible Galaxy Collection
+          echo "Installing PostgreSQL Ansible Galaxy Collection..."
+
+          ansible-galaxy collection install community.postgresql --upgrade
+          
+          # Test postgres connectivity
+          echo "Checking postgres connectivity..."
+
+          ansible postgres -i inventory.ini -m ping
+
+          # Execute postgres playbook
+          echo "Starting postgres deployment..."
+
+          ansible-playbook \
+              -i inventory.ini \
+              playbooks/playbook-postgres-setup.yaml \
+              --limit postgres \
+              --become
+
+          echo "postgres deployment completed successfully."
+
 
           REMOTE
