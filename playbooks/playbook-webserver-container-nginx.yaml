@@ -87,6 +87,8 @@
         image: "{{ nginx_image }}"
         pull: false
         state: started
+        cap_drop: []
+        capabilities: []
         restart_policy: unless-stopped
         published_ports:
           - "192.168.0.35:{{ nginx_host_port }}:{{ nginx_container_port }}"
@@ -103,6 +105,8 @@
           networks: strict
           published_ports: strict
           volumes: strict
+          cap_drop: strict
+          capabilities: strict
 
     - name: Apply pending Nginx handlers
       ansible.builtin.meta: flush_handlers
