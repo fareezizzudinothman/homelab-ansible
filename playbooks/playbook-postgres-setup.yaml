@@ -102,7 +102,6 @@
     - name: Configure PostgreSQL superuser password
       become: true
       become_user: postgres
-      become_method: su
       community.postgresql.postgresql_user:
         name: "{{ postgres_user }}"
         password: "{{ postgres_password }}"
@@ -119,7 +118,6 @@
     - name: Create PostgreSQL database
       become: true
       become_user: postgres
-      become_method: su
       community.postgresql.postgresql_db:
         name: "{{ postgres_database }}"
         owner: "{{ postgres_user }}"
