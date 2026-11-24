@@ -61,6 +61,7 @@
 
               include /etc/nginx/conf.d/*.conf;
           }
+      notify: Restart Nginx
 
     - name: Deploy default Nginx virtual host
       ansible.builtin.copy:
@@ -98,6 +99,7 @@
           - ALL
         capabilities:
           - NET_BIND_SERVICE
+          - CHOWN
         security_opts:
           - no-new-privileges:true
         memory: 256M
@@ -106,7 +108,9 @@
           networks: strict
           published_ports: strict
           volumes: strict
-        restart: true
+
+    - name: Apply pending Nginx handlers
+      ansible.builtin.meta: flush_handlers
 
   handlers:
     - name: Restart Nginx
