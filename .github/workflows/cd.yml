@@ -167,4 +167,13 @@ jobs:
               --limit webserver \
               --become
 
+          # Execute webserver-belanja playbook
+          echo "Starting belanja apps deployment..."
+
+          ansible-playbook \
+              -i inventory.ini \
+              playbooks/playbook-webserver-container-belanja.yaml \
+              --limit webserver \
+              --become
+
           REMOTE

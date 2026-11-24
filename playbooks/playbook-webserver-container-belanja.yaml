@@ -1,0 +1,159 @@
+---
+- name: Deploy Belanja Application
+  hosts: webserver
+  become: true
+
+  vars:
+    belanja_repo: "https://github.com/fareezizzudinothman/belanja.git"
+    belanja_branch: "main"
+
+    belanja_app_dir: /opt/webstack/apps/belanja
+    belanja_secrets_dir: /opt/webstack/secrets
+    belanja_env_file: /opt/webstack/secrets/belanja.env
+
+    belanja_env_retries: 60
+    belanja_env_delay: 10
+
+  tasks:
+
+    # --------------------------------------------------
+    # 1. Create application directory
+    # --------------------------------------------------
+
+    - name: Create Belanja application directory
+      ansible.builtin.file:
+        path: "{{ belanja_app_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
+    # --------------------------------------------------
+    # 2. Create secrets directory
+    # --------------------------------------------------
+
+    - name: Create secrets directory
+      ansible.builtin.file:
+        path: "{{ belanja_secrets_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    # --------------------------------------------------
+    # 3. Create environment file if missing
+    # --------------------------------------------------
+
+    - name: Create Belanja environment file
+      ansible.builtin.file:
+        path: "{{ belanja_env_file }}"
+        state: touch
+        owner: root
+        group: root
+        mode: "0600"
+        modification_time: preserve
+        access_time: preserve
+
+    # --------------------------------------------------
+    # 4. Clone or update GitHub repository
+    # --------------------------------------------------
+
+    - name: Deploy Belanja source code from GitHub
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.git:
+        repo: "{{ belanja_repo }}"
+        dest: "{{ belanja_app_dir }}"
+        version: "{{ belanja_branch }}"
+        update: true
+        force: false
+
+    # --------------------------------------------------
+    # 5. Verify Docker Compose file
+    # --------------------------------------------------
+
+    - name: Check Docker Compose file
+      ansible.builtin.stat:
+        path: "{{ belanja_app_dir }}/docker-compose.yml"
+      register: belanja_compose
+
+    - name: Validate Docker Compose file exists
+      ansible.builtin.assert:
+        that:
+          - belanja_compose.stat.exists
+        fail_msg: "Belanja docker-compose.yml not found."
+
+    # --------------------------------------------------
+    # 6. Wait for manual environment configuration
+    # --------------------------------------------------
+
+    - name: Display environment configuration instructions
+      ansible.builtin.debug:
+        msg:
+          - "Belanja source code deployed successfully."
+          - "Please SSH into webserver-01."
+          - "Edit: {{ belanja_env_file }}"
+          - "Paste the complete Belanja environment variables."
+          - "Ansible will check every {{ belanja_env_delay }} seconds."
+          - "Maximum waiting time: approximately 10 minutes."
+
+    - name: Wait until Belanja environment file is populated
+      ansible.builtin.shell: |
+        set -eu
+
+        grep -qE '^DATABASE_URL=.+$' "{{ belanja_env_file }}"
+        grep -qE '^JWT_SECRET=.+$' "{{ belanja_env_file }}"
+        grep -qE '^POSTGRES_SCHEMA=belanja$' "{{ belanja_env_file }}"
+      register: belanja_env_check
+      changed_when: false
+      retries: "{{ belanja_env_retries }}"
+      delay: "{{ belanja_env_delay }}"
+      until: belanja_env_check.rc == 0
+
+    # --------------------------------------------------
+    # 7. Validate Docker Compose configuration
+    # --------------------------------------------------
+
+    - name: Validate Belanja Docker Compose configuration
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.command:
+        cmd: docker compose config --quiet
+        chdir: "{{ belanja_app_dir }}"
+      changed_when: false
+
+    # --------------------------------------------------
+    # 8. Build and deploy Belanja container
+    # --------------------------------------------------
+
+    - name: Build and start Belanja backend container
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.command:
+        cmd: docker compose up -d --build
+        chdir: "{{ belanja_app_dir }}"
+      register: belanja_deployment
+
+    # --------------------------------------------------
+    # 9. Wait for container health
+    # --------------------------------------------------
+
+    - name: Wait for Belanja backend to become healthy
+      community.docker.docker_container_info:
+        name: belanja-backend-1
+      register: belanja_container
+      retries: 30
+      delay: 10
+      until:
+        - belanja_container.exists
+        - belanja_container.container.State.Health.Status | default('') == 'healthy'
+
+    # --------------------------------------------------
+    # 10. Deployment summary
+    # --------------------------------------------------
+
+    - name: Display deployment result
+      ansible.builtin.debug:
+        msg:
+          - "Belanja deployment completed successfully."
+          - "Application directory: {{ belanja_app_dir }}"
+          - "Environment file: {{ belanja_env_file }}"
+          - "Docker container: belanja-backend-1"
+          - "Container health: healthy"
