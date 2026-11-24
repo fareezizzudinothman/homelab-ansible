@@ -1,3 +1,4 @@
+---
 - name: Deploy Cloudflare Tunnel Container
   hosts: webserver
   become: true
@@ -48,4 +49,3 @@
         comparisons:
           image: strict
           networks: strict
-          env_file: strict
