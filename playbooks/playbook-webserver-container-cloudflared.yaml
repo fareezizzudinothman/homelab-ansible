@@ -48,4 +48,3 @@
         comparisons:
           image: strict
           networks: strict
-          env_file: strict
