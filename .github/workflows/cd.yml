@@ -158,4 +158,13 @@ jobs:
               --limit webserver \
               --become
 
+          # Execute webserver-Cloudflared playbook
+          echo "Starting nginx container deployment..."
+
+          ansible-playbook \
+              -i inventory.ini \
+              playbooks/playbook-webserver-container-cloudflared.yaml \
+              --limit webserver \
+              --become
+
           REMOTE

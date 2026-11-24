@@ -1,0 +1,51 @@
+- name: Deploy Cloudflare Tunnel Container
+  hosts: webserver
+  become: true
+  gather_facts: true
+
+  vars:
+    cloudflared_container_name: cloudflared
+    cloudflared_image: cloudflare/cloudflared:latest
+    docker_network: homelab-network
+    cloudflared_env_file: /opt/webstack/secrets/cloudflared.env
+
+  tasks:
+
+    - name: Check Cloudflare token file
+      ansible.builtin.stat:
+        path: "{{ cloudflared_env_file }}"
+      register: cloudflared_token_file
+
+    - name: Fail if Cloudflare token file does not exist
+      ansible.builtin.fail:
+        msg: "Cloudflare token file is missing: {{ cloudflared_env_file }}"
+      when: not cloudflared_token_file.stat.exists
+
+    - name: Check existing Docker network
+      community.docker.docker_network_info:
+        name: "{{ docker_network }}"
+      register: cloudflared_network_info
+
+    - name: Fail if Docker network does not exist
+      ansible.builtin.fail:
+        msg: "Docker network {{ docker_network }} does not exist."
+      when: not cloudflared_network_info.exists
+
+    - name: Deploy Cloudflared container
+      community.docker.docker_container:
+        name: "{{ cloudflared_container_name }}"
+        image: "{{ cloudflared_image }}"
+        pull: true
+        state: started
+        restart_policy: unless-stopped
+        command: tunnel --no-autoupdate run
+        env_file: "{{ cloudflared_env_file }}"
+        networks:
+          - name: "{{ docker_network }}"
+        security_opts:
+          - no-new-privileges:true
+        memory: 128M
+        comparisons:
+          image: strict
+          networks: strict
+          env_file: strict
