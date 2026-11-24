@@ -95,11 +95,6 @@
         volumes:
           - "{{ nginx_base_dir }}/nginx.conf:/etc/nginx/nginx.conf:ro"
           - "{{ nginx_base_dir }}/conf.d:/etc/nginx/conf.d:ro"
-        cap_drop:
-          - ALL
-        capabilities:
-          - NET_BIND_SERVICE
-          - CHOWN
         security_opts:
           - no-new-privileges:true
         memory: 256M
