@@ -107,7 +107,7 @@
         password: "{{ postgres_password }}"
         role_attr_flags: SUPERUSER
         login_unix_socket: /var/run/postgresql
-        port: "{{ postgres_port }}"
+        login_port: "{{ postgres_port }}"
         state: present
       no_log: false
 
@@ -122,7 +122,7 @@
         name: "{{ postgres_database }}"
         owner: "{{ postgres_user }}"
         login_unix_socket: /var/run/postgresql
-        port: "{{ postgres_port }}"
+        login_port: "{{ postgres_port }}"
         state: present
 
     # ----------------------------------------
