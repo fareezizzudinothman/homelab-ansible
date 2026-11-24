@@ -96,7 +96,19 @@
       ansible.builtin.meta: flush_handlers
 
     # ----------------------------------------
-    # 7. Set PostgreSQL Superuser Password
+    # 7. Add temporary folder for postgres
+    # ----------------------------------------
+
+    - name: Create Ansible temporary directory for PostgreSQL
+      ansible.builtin.file:
+        path: /var/lib/postgresql/.ansible/tmp
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: '0700'
+
+    # ----------------------------------------
+    # 8. Set PostgreSQL Superuser Password
     # ----------------------------------------
 
     - name: Configure PostgreSQL superuser password
@@ -112,7 +124,7 @@
       no_log: false
 
     # ----------------------------------------
-    # 8. Create postgres Database
+    # 9. Create postgres Database
     # ----------------------------------------
 
     - name: Create PostgreSQL database
@@ -126,7 +138,7 @@
         state: present
 
     # ----------------------------------------
-    # 9. Verify PostgreSQL
+    # 10. Verify PostgreSQL
     # ----------------------------------------
 
     - name: Check PostgreSQL readiness
