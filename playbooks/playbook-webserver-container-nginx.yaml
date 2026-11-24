@@ -84,7 +84,7 @@
       community.docker.docker_container:
         name: "{{ nginx_container_name }}"
         image: "{{ nginx_image }}"
-        pull: missing
+        pull: false
         state: started
         restart_policy: unless-stopped
         published_ports:
