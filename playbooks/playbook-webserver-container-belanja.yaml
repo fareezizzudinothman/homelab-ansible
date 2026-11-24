@@ -114,7 +114,7 @@
     # --------------------------------------------------
 
     - name: Validate Belanja Docker Compose configuration
-      become_user: "{{ ansible_user }}"
+      become: true
       ansible.builtin.command:
         cmd: docker compose config --quiet
         chdir: "{{ belanja_app_dir }}"
@@ -125,7 +125,7 @@
     # --------------------------------------------------
 
     - name: Build and start Belanja backend container
-      become_user: "{{ ansible_user }}"
+      become: true
       ansible.builtin.command:
         cmd: docker compose up -d --build
         chdir: "{{ belanja_app_dir }}"
