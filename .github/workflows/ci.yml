@@ -44,6 +44,6 @@ jobs:
           ansible-playbook playbooks/playbook-ansible.yaml --syntax-check
           ansible-playbook playbooks/playbook-webserver-docker.yaml --syntax-check
           ansible-playbook playbooks/playbook-postgres-setup.yaml  --syntax-check
-          ansible-playbook playbooks/playbook-webserver-container-nginx.yaml  --syntax-check
           ansible-playbook playbooks/playbook-webserver-container-cloudflared.yaml  --syntax-check
           ansible-playbook playbooks/playbook-webserver-container-belanja.yaml --syntax-check
+          ansible-playbook playbooks/playbook-webserver-container-nginx.yaml  --syntax-check
