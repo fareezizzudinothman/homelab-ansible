@@ -155,5 +155,5 @@
           - "Belanja deployment completed successfully."
           - "Application directory: {{ belanja_app_dir }}"
           - "Environment file: {{ belanja_env_file }}"
-          - "Docker container: belanja-backend-1"
+          - "Docker container: belanja"
           - "Container health: healthy"
