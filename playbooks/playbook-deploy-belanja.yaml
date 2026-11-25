@@ -153,7 +153,7 @@
 
         - name: Verify Belanja API through Nginx
           ansible.builtin.uri:
-            url: http://127.0.0.1:2001/api/health
+            url: http://192.168.0.35:2001/api/health
             method: GET
             headers:
               Host: belanja.fareezizzudinothman.com
