@@ -137,7 +137,7 @@
 
     - name: Wait for Belanja backend to become healthy
       community.docker.docker_container_info:
-        name: belanja-backend-1
+        name: belanja
       register: belanja_container
       retries: 30
       delay: 10
