@@ -1,0 +1,223 @@
+- name: Deploy Belanja from GHCR
+  hosts: webserver
+  become: true
+  gather_facts: false
+
+  vars:
+    app_dir: /opt/webstack/apps/belanja
+    compose_file: /opt/webstack/apps/belanja/docker-compose.yml
+    image_env_file: /opt/webstack/apps/belanja/.env
+
+    image_name: ghcr.io/fareezizzudinothman/belanja
+    image_tag: "{{ belanja_image_tag | default('latest') }}"
+    full_image: "{{ image_name }}:{{ image_tag }}"
+
+    compose_backup: /opt/webstack/apps/belanja/docker-compose.yml.pre-ghcr
+
+  tasks:
+
+    # ==========================================
+    # PRE-DEPLOYMENT VALIDATION
+    # ==========================================
+
+    - name: Check current Docker Compose file
+      ansible.builtin.stat:
+        path: "{{ compose_file }}"
+      register: compose_status
+
+    - name: Validate application directory
+      ansible.builtin.assert:
+        that:
+          - compose_status.stat.exists
+        fail_msg: "Belanja Docker Compose file not found."
+
+    - name: Check GHCR authentication
+      ansible.builtin.command:
+        cmd: docker login ghcr.io --username fareezizzudinothman --password-stdin
+        stdin: "{{ lookup('ansible.builtin.file', '/dev/null') }}"
+      changed_when: false
+      failed_when: false
+      register: ghcr_login_check
+
+    # ==========================================
+    # BACKUP CURRENT CONFIGURATION
+    # ==========================================
+
+    - name: Check existing Compose backup
+      ansible.builtin.stat:
+        path: "{{ compose_backup }}"
+      register: backup_status
+
+    - name: Backup original Docker Compose
+      ansible.builtin.copy:
+        src: "{{ compose_file }}"
+        dest: "{{ compose_backup }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      when: not backup_status.stat.exists
+
+    - name: Check previous image configuration
+      ansible.builtin.stat:
+        path: "{{ image_env_file }}"
+      register: previous_env_status
+
+    - name: Backup previous image configuration
+      ansible.builtin.copy:
+        src: "{{ image_env_file }}"
+        dest: "{{ image_env_file }}.backup"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0600"
+      when: previous_env_status.stat.exists
+
+    # ==========================================
+    # DEPLOYMENT
+    # ==========================================
+
+    - name: Deploy Belanja from GHCR
+      block:
+
+        - name: Configure GHCR Docker Compose
+          ansible.builtin.copy:
+            dest: "{{ compose_file }}"
+            owner: root
+            group: root
+            mode: "0644"
+            content: |
+              name: belanja
+
+              services:
+                backend:
+                  container_name: belanja
+                  image: ${BELANJA_IMAGE}
+                  restart: unless-stopped
+
+                  env_file:
+                    - /opt/webstack/secrets/belanja.env
+
+                  environment:
+                    NODE_ENV: production
+                    PORT: 4000
+                    POSTGRES_SCHEMA: belanja
+                    RUN_MIGRATIONS: "true"
+
+                  networks:
+                    homelab-network:
+                      aliases:
+                        - belanja-backend
+
+                  healthcheck:
+                    test:
+                      - CMD
+                      - node
+                      - -e
+                      - "fetch('http://localhost:4000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+                    interval: 10s
+                    timeout: 5s
+                    retries: 12
+                    start_period: 10s
+
+              networks:
+                homelab-network:
+                  external: true
+
+        - name: Set GHCR image version
+          ansible.builtin.copy:
+            dest: "{{ image_env_file }}"
+            owner: root
+            group: root
+            mode: "0644"
+            content: |
+              BELANJA_IMAGE={{ full_image }}
+
+        - name: Validate Docker Compose configuration
+          ansible.builtin.command:
+            cmd: docker compose config -q
+            chdir: "{{ app_dir }}"
+          changed_when: false
+
+        - name: Pull GHCR image
+          ansible.builtin.command:
+            cmd: docker compose pull
+            chdir: "{{ app_dir }}"
+
+        - name: Deploy Belanja container
+          ansible.builtin.command:
+            cmd: docker compose up -d --remove-orphans
+            chdir: "{{ app_dir }}"
+
+        - name: Wait for Belanja health
+          community.docker.docker_container_info:
+            name: belanja
+          register: belanja_status
+          retries: 30
+          delay: 10
+          until:
+            - belanja_status.exists
+            - belanja_status.container.State.Health.Status | default('') == 'healthy'
+
+        - name: Verify Belanja API through Nginx
+          ansible.builtin.uri:
+            url: http://127.0.0.1:2001/api/health
+            method: GET
+            headers:
+              Host: belanja.fareezizzudinothman.com
+            status_code: 200
+
+      rescue:
+
+        # ======================================
+        # ROLLBACK
+        # ======================================
+
+        - name: Restore previous image configuration
+          ansible.builtin.copy:
+            src: "{{ image_env_file }}.backup"
+            dest: "{{ image_env_file }}"
+            remote_src: true
+            owner: root
+            group: root
+            mode: "0644"
+          when: previous_env_status.stat.exists
+
+        - name: Restore original Compose configuration
+          ansible.builtin.copy:
+            src: "{{ compose_backup }}"
+            dest: "{{ compose_file }}"
+            remote_src: true
+            owner: root
+            group: root
+            mode: "0644"
+          when: not previous_env_status.stat.exists
+
+        - name: Rollback to previous deployment
+          ansible.builtin.command:
+            cmd: >-
+              docker compose
+              {{ '--build' if not previous_env_status.stat.exists else '' }}
+              up -d --remove-orphans
+            chdir: "{{ app_dir }}"
+          register: rollback_result
+          failed_when: false
+
+        - name: Report deployment failure
+          ansible.builtin.fail:
+            msg: >-
+              Belanja deployment failed.
+              Rollback was attempted.
+              Check Docker logs on webserver-01.
+
+    # ==========================================
+    # DEPLOYMENT SUMMARY
+    # ==========================================
+
+    - name: Display deployment result
+      ansible.builtin.debug:
+        msg:
+          - "Belanja deployment successful."
+          - "Image: {{ full_image }}"
+          - "Container: belanja"
+          - "Health: healthy"
