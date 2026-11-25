@@ -31,14 +31,6 @@
           - compose_status.stat.exists
         fail_msg: "Belanja Docker Compose file not found."
 
-    - name: Check GHCR authentication
-      ansible.builtin.command:
-        cmd: docker login ghcr.io --username fareezizzudinothman --password-stdin
-        stdin: "{{ lookup('ansible.builtin.file', '/dev/null') }}"
-      changed_when: false
-      failed_when: false
-      register: ghcr_login_check
-
     # ==========================================
     # BACKUP CURRENT CONFIGURATION
     # ==========================================
